@@ -190,7 +190,8 @@ class History:
         Returns:
             list of numbers : a derivative with respect to `inputs`
         """
-        raise NotImplementedError('Need to include this file from past assignment.')
+        res = self.last_fn.chain_rule(self.ctx, self.inputs, d_output)
+        return res
 
 
 class FunctionBase:
@@ -272,7 +273,15 @@ class FunctionBase:
         """
         # Tip: Note when implementing this function that
         # cls.backward may return either a value or a tuple.
-        raise NotImplementedError('Need to include this file from past assignment.')
+        res = []
+        back = wrap_tuple(cls.backward(ctx, d_output))
+        for i, v in enumerate(inputs):
+            if isinstance(v, Variable):
+                if is_constant(v):
+                    continue
+                else:
+                    res.append((v, back[i]))
+        return res
 
 
 # Algorithms for backpropagation
@@ -293,7 +302,47 @@ def topological_sort(variable):
         list of Variables : Non-constant Variables in topological order
                             starting from the right.
     """
-    raise NotImplementedError('Need to include this file from past assignment.')
+    G = {}
+    inds = {}
+    id2var = {}
+    visited = set()
+    # build the graph
+    queue = [variable.unique_id]
+    visited.add(variable.unique_id)
+    id2var[variable.unique_id] = variable
+    G[variable.unique_id] = []
+    while len(queue) > 0:
+        v = id2var[queue[0]]
+        queue = queue[1:]
+        inds[v.unique_id] = 0
+        if v.is_leaf():
+            continue
+        for vv in v.history.inputs:
+            if is_constant(vv):
+                continue
+            if vv.unique_id not in G:
+                G[vv.unique_id] = []
+            G[vv.unique_id].append(v.unique_id)
+            inds[v.unique_id] += 1
+            if vv.unique_id not in visited:
+                queue.append(vv.unique_id)
+                visited.add(vv.unique_id)
+                id2var[vv.unique_id] = vv
+    # toposort
+    res = []
+    queue = []
+    for k, v in inds.items():
+        if v == 0:
+            queue.append(k)
+    while len(queue) > 0:
+        v = id2var[queue[0]]
+        queue = queue[1:]
+        res.append(v)
+        for vv in G[v.unique_id]:
+            inds[vv] -= 1
+            if inds[vv] == 0:
+                queue.append(vv)
+    return reversed(res)
 
 
 def backpropagate(variable, deriv):
@@ -309,4 +358,16 @@ def backpropagate(variable, deriv):
 
     No return. Should write to its results to the derivative values of each leaf through `accumulate_derivative`.
     """
-    raise NotImplementedError('Need to include this file from past assignment.')
+    queue = topological_sort(variable)
+    dic = {}
+    dic[variable.name] = deriv
+    for v in queue:
+        if v.is_leaf():
+            v.accumulate_derivative(dic[v.name])
+        else:
+            back = v.history.backprop_step(dic[v.name])
+            for vv, value in back:
+                if vv.name in dic:
+                    dic[vv.name] += value
+                else:
+                    dic[vv.name] = value
