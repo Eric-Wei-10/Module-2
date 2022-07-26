@@ -39,8 +39,14 @@ def tensor_map(fn):
     """
 
     def _map(out, out_shape, out_strides, in_storage, in_shape, in_strides):
-        # TODO: Implement for Task 2.2.
-        raise NotImplementedError('Need to implement for Task 2.2')
+        out_index = np.zeros(MAX_DIMS, np.int32)
+        in_index = np.zeros(MAX_DIMS, np.int32)
+        for i in range(len(out)):
+            to_index(i, out_shape, out_index)
+            broadcast_index(out_index, out_shape, in_shape, in_index)
+            o = index_to_position(out_index, out_strides)
+            j = index_to_position(in_index, in_strides)
+            out[o] = fn(in_storage[j])
 
     return _map
 
@@ -82,7 +88,7 @@ def map(fn):
             out = a.zeros(a.shape)
         f(*out.tuple(), *a.tuple())
         return out
-
+    
     return ret
 
 
@@ -130,9 +136,17 @@ def tensor_zip(fn):
         b_shape,
         b_strides,
     ):
-        # TODO: Implement for Task 2.2.
-        raise NotImplementedError('Need to implement for Task 2.2')
-
+        out_index = np.zeros(MAX_DIMS, np.int32)
+        a_index = np.zeros(MAX_DIMS, np.int32)
+        b_index = np.zeros(MAX_DIMS, np.int32)
+        for i in range(len(out)):
+            to_index(i, out_shape, out_index)
+            j = index_to_position(out_index, out_strides)
+            broadcast_index(out_index, out_shape, a_shape, a_index)
+            k = index_to_position(a_index, a_strides)
+            broadcast_index(out_index, out_shape, b_shape, b_index)
+            l = index_to_position(b_index, b_strides)
+            out[j] = fn(a_storage[k], b_storage[l])
     return _zip
 
 
@@ -201,8 +215,15 @@ def tensor_reduce(fn):
     """
 
     def _reduce(out, out_shape, out_strides, a_storage, a_shape, a_strides, reduce_dim):
-        # TODO: Implement for Task 2.2.
-        raise NotImplementedError('Need to implement for Task 2.2')
+        out_index = np.zeros_like(out_shape)
+        a_index = np.zeros_like(a_shape)
+
+        for i in range(len(a_storage)):
+            to_index(i, a_shape, a_index)
+            broadcast_index(a_index, a_shape, out_shape, out_index)
+            out_pos = index_to_position(out_index, out_strides)
+            out[out_pos] = fn(out[out_pos], a_storage[i])
+
 
     return _reduce
 

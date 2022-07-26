@@ -46,12 +46,11 @@ def to_index(ordinal, shape, out_index):
       None : Fills in `out_index`.
 
     """
-    # I don't understand the meaning of this question
-    cur_pos = ordinal + 0
-    for i in range(len(shape) - 1, -1, -1):
-        sh = shape[i]
-        out_index[i] = int(cur_pos % sh)
-        cur_pos = cur_pos // sh
+    i = len(shape) - 1
+    while i >= 0:
+        out_index[i] = ordinal % shape[i]
+        ordinal = ordinal // shape[i]
+        i = i - 1
 
 
 def broadcast_index(big_index, big_shape, shape, out_index):
@@ -71,8 +70,15 @@ def broadcast_index(big_index, big_shape, shape, out_index):
     Returns:
         None : Fills in `out_index`.
     """
-    # TODO: Implement for Task 2.2.
-    raise NotImplementedError('Need to implement for Task 2.2')
+    i1 = len(big_shape) - 1
+    i2 = len(shape) - 1
+    while i2 >= 0:
+        if shape[i2] == 1:
+            out_index[i2] = 0
+        else:
+            out_index[i2] = big_index[i1]
+        i2 -= 1
+        i1 -= 1
 
 
 def shape_broadcast(shape1, shape2):
@@ -216,14 +222,6 @@ class TensorData:
             shape = shape + (self.shape[order[i]],)
             strides = strides + (self.strides[order[i]],)
         return TensorData(self._storage, shape=shape, strides=strides)
-        # shape = tuple()
-        # strides = tuple()
-        # for i, p in enumerate(order):
-        #     shape = shape + (self.shape[p],)
-        #     strides = strides + (self._strides[p],)
-
-        # newtd = TensorData(self._storage, shape=shape, strides=strides)
-        # return newtd
 
     def to_string(self):
         s = ""
